@@ -13,17 +13,14 @@ defmodule IEx.Introspection do
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        if function_exported?(module, :__info__, 1) do
-          case Code.get_docs(module, :moduledoc) do
-            {_, binary} when is_binary(binary) ->
-              print_doc(inspect(module), binary)
-            {_, _} ->
-              no_docs(inspect module)
-            _ ->
-              puts_error("#{inspect module} was not compiled with docs")
-          end
-        else
-          puts_error("#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
+        doc_provider = Application.get_env(:iex, :beam_doc_provider, Code)
+        case doc_provider.get_docs(module, :moduledoc) do
+          {_, binary} when is_binary(binary) ->
+            print_doc(inspect(module), binary)
+          {_, _} ->
+            no_docs(inspect module)
+          _ ->
+            puts_error("#{inspect module} was not compiled with docs")
         end
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
